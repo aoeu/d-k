@@ -12,8 +12,6 @@ import (
 
 var palette = []color.Color{
 	color.Black,
-	color.RGBA{G: 0xFF, A: 0x01},
-	color.RGBA{B: 0xFF, A: 0x01},
 }
 
 const (
@@ -21,6 +19,15 @@ const (
 	greenIndex = 1
 	blueIndex = 2
 )
+
+func genGradientPalette(n int) {
+	ci := color.RGBA{G: 0xFF, A: 0x01}
+	var stepSize uint8 = 0xFF % uint8(n)
+	for i := 0; i < n; i++ {
+		ci = color.RGBA{G: ci.G - stepSize, B: ci.B + stepSize, A: ci.A}
+		palette = append(palette, ci)
+	}
+}
 
 func main() {
 	lissajous(os.Stdout)
@@ -31,9 +38,10 @@ func lissajous(out io.Writer) {
 		cycles  = 5
 		res     = 0.001
 		size    = 100
-		nframes = 64
-		delay   = 8
+		nframes = 128
+		delay   = 24
 	)
+	genGradientPalette(nframes)
 	freq := rand.Float64() * 3.0
 	anim := gif.GIF{LoopCount: nframes}
 	phase := 0.0
@@ -43,11 +51,7 @@ func lissajous(out io.Writer) {
 		for t := 0.0; t < cycles*2*math.Pi; t += res {
 			x := math.Sin(t)
 			y := math.Sin(t*freq + phase)
-			var ci uint8 = greenIndex
-			if i % 2 == 0 {
-				ci = blueIndex
-			}
-			img.SetColorIndex(size+int(x*size+0.5), size+int(y*size+0.5), ci)
+			img.SetColorIndex(size+int(x*size+0.5), size+int(y*size+0.5), uint8(i+1))
 		}
 		phase += 0.1
 		anim.Delay = append(anim.Delay, delay)
