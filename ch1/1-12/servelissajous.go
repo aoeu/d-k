@@ -10,33 +10,52 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			log.Println(err)
+		}
 		s := newLissajous()
 		msg := ""
 		for name, value := range r.Form {
-			switch strings.ToLower(name) { // TODO(aoeu): Keep case insensitivity like headers?
-			case "cycles":
-				c, err := strconv.Atoi(value[0])
-				if err != nil {
-					msg += fmt.Sprintf("Error converting %s value %v : %v\n",
-						name, value[0], err)
+			var i int
+			var f float64
+			var err error
+			errFmtStr := "Error converting %s value %v : %v\n"
+			n := strings.ToLower(name) // TODO(aoeu): Keep case insensitivity like headers?
+			switch n {
+			case "cycles", "size", "nframes", "delay":
+				if i, err = strconv.Atoi(value[0]); err != nil {
+					msg += fmt.Sprintf(errFmtStr, name, value[0], err)
 					continue
 				}
-				s.cycles = c
 			case "res":
+				if f, err = strconv.ParseFloat(value[0], 64); err != nil {
+					msg += fmt.Sprintf(errFmtStr, name, value[0], err)
+					continue
+				}
+			}
+			switch n {
+			case "cycles":
+				s.cycles = i
 			case "size":
+				s.size = i
 			case "nframes":
+				s.nframes = i
 			case "delay":
-			case "help":
+				s.delay = i
+			case "res":
+				s.res = f
 			}
 		}
+		fmt.Printf("%#v\n", s)
+		fmt.Fprintln(os.Stderr, msg)
 		s.renderAnim(w)
-		fmt.Fprintln(w, msg)
 	})
 	log.Fatal(http.ListenAndServe("localhost:8000", nil))
 }
