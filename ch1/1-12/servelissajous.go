@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -16,6 +17,9 @@ import (
 )
 
 func main() {
+	var host string
+	flag.StringVar(&host, "host", "localhost:8000", "The hostname and port to serve data from over HTTP.")
+	flag.Parse()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			log.Println(err)
@@ -39,6 +43,8 @@ func main() {
 					msg += fmt.Sprintf(errFmtStr, name, value[0], err)
 					continue
 				}
+			case "help":
+				msg += "Add 'size', 'cycles', 'nframes', 'delay', and 'res' as query string parameters:"
 			}
 			switch n {
 			case "cycles":
@@ -53,11 +59,11 @@ func main() {
 				s.res = f
 			}
 		}
-		fmt.Printf("%#v\n", s)
+		log.Printf("%v\n", s.URL(host))
 		fmt.Fprintln(os.Stderr, msg)
 		s.renderAnim(w)
 	})
-	log.Fatal(http.ListenAndServe("localhost:8000", nil))
+	log.Fatal(http.ListenAndServe(host, nil))
 }
 
 var palette = []color.Color{
@@ -86,6 +92,12 @@ func newLissajous() *lissajous {
 		nframes: 64,
 		delay:   8,
 	}
+}
+
+func (s lissajous) URL(host string) string {
+	// TODO(aoeu): Would url.URL provide implementation advantages?
+	return fmt.Sprintf("%v?size=%v&cycles=%v&nframes=%v&delay=%v&res=%v",
+		host, s.size, s.cycles, s.nframes, s.delay, s.res)
 }
 
 func (s *lissajous) renderAnim(out io.Writer) {
