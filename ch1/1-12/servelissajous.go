@@ -38,7 +38,7 @@ func main() {
 					msg += fmt.Sprintf(errFmtStr, name, value[0], err)
 					continue
 				}
-			case "res":
+			case "res", "freq":
 				if f, err = strconv.ParseFloat(value[0], 64); err != nil {
 					msg += fmt.Sprintf(errFmtStr, name, value[0], err)
 					continue
@@ -57,6 +57,8 @@ func main() {
 				s.delay = i
 			case "res":
 				s.res = f
+			case "freq":
+				s.freq = f
 			}
 		}
 		log.Printf("%v\n", s.URL(host))
@@ -82,6 +84,7 @@ type lissajous struct {
 	size    int
 	nframes int
 	delay   int
+	freq    float64
 }
 
 func newLissajous() *lissajous {
@@ -91,17 +94,17 @@ func newLissajous() *lissajous {
 		size:    100,
 		nframes: 64,
 		delay:   8,
+		freq:    rand.Float64() * 3.0,
 	}
 }
 
 func (s lissajous) URL(host string) string {
 	// TODO(aoeu): Would url.URL provide implementation advantages?
-	return fmt.Sprintf("%v?size=%v&cycles=%v&nframes=%v&delay=%v&res=%v",
-		host, s.size, s.cycles, s.nframes, s.delay, s.res)
+	return fmt.Sprintf("%v?size=%v&cycles=%v&nframes=%v&delay=%v&res=%v&freq=%v",
+		host, s.size, s.cycles, s.nframes, s.delay, s.res, s.freq)
 }
 
 func (s *lissajous) renderAnim(out io.Writer) {
-	freq := rand.Float64() * 3.0
 	anim := gif.GIF{LoopCount: s.nframes}
 	phase := 0.0
 	for i := 0; i < s.nframes; i++ {
@@ -109,7 +112,7 @@ func (s *lissajous) renderAnim(out io.Writer) {
 		img := image.NewPaletted(rect, palette)
 		for t := 0.0; t < float64(s.cycles)*2*math.Pi; t += s.res {
 			x := math.Sin(t)
-			y := math.Sin(t*freq + phase)
+			y := math.Sin(t*s.freq + phase)
 			xi := s.size + int(x*float64(s.size)+0.5)
 			yi := s.size + int(y*float64(s.size)+0.5)
 			img.SetColorIndex(xi, yi, greenIndex)
